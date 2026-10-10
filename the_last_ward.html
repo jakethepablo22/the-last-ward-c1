@@ -1,0 +1,1476 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>THE LAST WARD — Chapter 1</title>
+
+<style>
+:root {
+  --blood:#a13b35;
+  --paper:#d8d2c5;
+  --dim:#8c938f;
+}
+* { box-sizing:border-box; }
+html,body {
+  margin:0;width:100%;height:100%;overflow:hidden;
+  background:#050708;color:#e7e5df;
+  font-family:Georgia,"Times New Roman",serif;
+}
+body { overscroll-behavior:none; }
+canvas { display:block;touch-action:none; }
+
+#vignette,#grain {
+  position:fixed;inset:0;pointer-events:none;
+}
+#vignette {
+  z-index:3;
+  background:radial-gradient(ellipse at center,
+    transparent 25%,rgba(0,0,0,.35) 70%,rgba(0,0,0,.86) 120%);
+}
+#grain {
+  z-index:4;opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
+  animation:grain .2s steps(2) infinite;
+}
+@keyframes grain {
+  0%{transform:translate(0,0)}
+  25%{transform:translate(1%,-1%)}
+  50%{transform:translate(-1%,1%)}
+  75%{transform:translate(1%,1%)}
+  100%{transform:translate(-1%,-1%)}
+}
+
+#hud {
+  position:fixed;inset:0;z-index:5;pointer-events:none;
+}
+#brand {
+  position:absolute;left:25px;top:22px;
+  letter-spacing:.24em;font:12px Arial,sans-serif;color:#bfc3bd;
+}
+#chapter {
+  position:absolute;left:25px;top:42px;
+  font:10px Arial,sans-serif;letter-spacing:.14em;color:#777f7d;
+}
+#objective {
+  position:absolute;left:25px;bottom:28px;max-width:310px;
+  padding-left:13px;border-left:2px solid #9d403b;
+}
+#objective small {
+  display:block;color:#9b9c95;letter-spacing:.2em;
+  font:10px Arial,sans-serif;margin-bottom:7px;
+}
+#objectiveText {font-size:17px;line-height:1.35}
+#status {
+  position:absolute;right:25px;bottom:27px;text-align:right;
+  font:11px Arial,sans-serif;letter-spacing:.12em;
+  color:#9ca19b;line-height:1.8;
+}
+#crosshair {
+  position:absolute;left:50%;top:50%;width:5px;height:5px;
+  border-radius:50%;background:#d5d2c9;
+  box-shadow:0 0 9px #fff;opacity:.7;
+  transform:translate(-50%,-50%);
+}
+#prompt {
+  position:absolute;left:50%;top:56%;
+  transform:translateX(-50%);
+  font:12px Arial,sans-serif;letter-spacing:.13em;
+  color:#dedbd1;text-shadow:0 2px 6px black;text-align:center;
+}
+#message {
+  position:absolute;left:50%;top:16%;
+  transform:translateX(-50%);width:min(600px,85vw);
+  text-align:center;font-size:clamp(17px,2.3vw,24px);
+  line-height:1.5;color:#e0ddd4;text-shadow:0 2px 10px black;
+  opacity:0;transition:opacity .3s;
+}
+#message.show {opacity:1}
+
+#overlay {
+  position:fixed;inset:0;z-index:10;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(120deg,rgba(2,5,7,.97),rgba(8,11,12,.87)),
+    radial-gradient(ellipse at 70% 45%,#25302f,transparent 55%);
+  padding:24px;
+}
+.panel {
+  width:min(760px,94vw);border:1px solid #505653;
+  background:rgba(5,8,9,.94);
+  padding:clamp(24px,5vw,54px);
+  box-shadow:0 25px 90px #000;
+  max-height:94vh;overflow:auto;
+}
+.kicker {
+  font:10px Arial,sans-serif;letter-spacing:.35em;color:#a74a42;
+}
+h1 {
+  font-size:clamp(36px,7vw,70px);font-weight:normal;
+  letter-spacing:.09em;line-height:.95;margin:16px 0 18px;
+}
+.subtitle {
+  color:#aeb2ac;font:12px Arial,sans-serif;
+  letter-spacing:.15em;text-transform:uppercase;
+}
+.story {
+  max-width:590px;color:#d0cec6;font-size:17px;
+  line-height:1.65;margin:24px 0;
+}
+.controls {
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px 20px;margin:24px 0;color:#9ea39d;
+  font:12px Arial,sans-serif;
+}
+kbd {
+  display:inline-block;min-width:24px;text-align:center;
+  padding:4px 6px;border:1px solid #525854;color:#e3e0d8;
+  margin-right:7px;
+}
+button {
+  border:1px solid #b24c43;background:#6f2623;
+  color:#f4eee5;padding:15px 22px;
+  font:11px Arial,sans-serif;letter-spacing:.23em;
+  cursor:pointer;touch-action:manipulation;
+  user-select:none;-webkit-user-select:none;
+}
+button:hover {background:#8c322c}
+button:active {background:#a23d34;transform:translateY(1px)}
+button:focus-visible {outline:2px solid #e4c4a0;outline-offset:3px}
+.hint {
+  color:#777f7a;font:11px Arial,sans-serif;
+  line-height:1.6;margin-top:16px;
+}
+
+#notePanel,#endingPanel,#pausePanel {
+  position:fixed;inset:0;z-index:12;
+  display:none;align-items:center;justify-content:center;
+  padding:24px;background:rgba(0,0,0,.87);
+}
+.paper {
+  max-width:600px;width:100%;background:#d7d0bf;
+  color:#22221f;padding:clamp(24px,5vw,48px);
+  box-shadow:0 20px 80px #000;
+}
+.paper h2 {font-weight:normal;letter-spacing:.08em;margin-top:0}
+.paper p {font-size:18px;line-height:1.65;white-space:pre-line}
+.paper button {margin-top:12px}
+
+#flash {
+  position:fixed;inset:0;background:#e8e7d6;
+  z-index:20;opacity:0;pointer-events:none;
+}
+#mobile {
+  display:none;position:fixed;z-index:7;bottom:105px;
+  left:12px;right:12px;justify-content:space-between;
+  gap:7px;pointer-events:none;
+}
+#mobile button {
+  pointer-events:auto;opacity:.88;padding:14px 13px;
+  background:rgba(15,20,18,.88);border-color:#687069;
+  letter-spacing:0;min-width:44px;
+}
+#mobile button.active {background:#82332d}
+#lookHelp {
+  position:fixed;right:20px;top:20px;z-index:6;
+  color:#c3c4bc;background:rgba(0,0,0,.35);
+  padding:8px 10px;font:10px Arial,sans-serif;
+  letter-spacing:.08em;pointer-events:none;opacity:.8;
+}
+@media(max-width:700px) {
+  #mobile {display:flex}
+  .controls {grid-template-columns:1fr 1fr}
+  #objective {bottom:15px;max-width:220px}
+  #status {bottom:14px;right:14px}
+  #brand {left:15px;top:15px}
+  #chapter {left:15px;top:35px}
+  #objectiveText {font-size:14px}
+  #lookHelp {top:65px;right:10px}
+}
+</style>
+</head>
+
+<body>
+<div id="vignette"></div>
+<div id="grain"></div>
+
+<div id="hud">
+  <div id="brand">THE LAST WARD</div>
+  <div id="chapter">CHAPTER I — THE PATIENT</div>
+
+  <div id="objective">
+    <small>OBJECTIVE</small>
+    <div id="objectiveText">Find the four records hidden in the ward.</div>
+  </div>
+
+  <div id="status">
+    FLASHLIGHT <span id="lightState">ON</span><br>
+    CLUES <span id="clueCount">0 / 4</span>
+  </div>
+
+  <div id="crosshair"></div>
+  <div id="prompt"></div>
+  <div id="message"></div>
+</div>
+
+<div id="lookHelp">CLICK AND DRAG TO LOOK</div>
+
+<div id="overlay">
+  <div class="panel">
+    <div class="kicker">A FIRST-PERSON SURVIVAL HORROR EXPERIENCE</div>
+    <h1>THE LAST<br>WARD</h1>
+    <div class="subtitle">Some memories are locked for a reason.</div>
+
+    <p class="story">
+      Mike wakes in a hospital that should have been abandoned years ago.
+      He remembers his name, but nothing else.
+
+      Somewhere beyond the ward, a telephone keeps ringing.
+      And something in the dark seems to know him.
+    </p>
+
+    <div class="controls">
+      <div><kbd>W A S D</kbd> Move</div>
+      <div><kbd>MOUSE</kbd> Look around</div>
+      <div><kbd>E</kbd> Interact / read</div>
+      <div><kbd>F</kbd> Flashlight</div>
+      <div><kbd>SHIFT</kbd> Sprint</div>
+      <div><kbd>ESC</kbd> Pause</div>
+    </div>
+
+    <button id="startBtn" type="button">ENTER THE WARD</button>
+    <div class="hint">
+      Recommended: desktop Chrome. Internet is required to load Three.js.
+      Click and drag to look around if mouse lock is unavailable.
+    </div>
+  </div>
+</div>
+
+<div id="notePanel">
+  <div class="paper">
+    <h2 id="noteTitle">PATIENT RECORD</h2>
+    <p id="noteText"></p>
+    <button id="closeNote" type="button">CLOSE FILE</button>
+  </div>
+</div>
+
+<div id="pausePanel">
+  <div class="panel">
+    <div class="kicker">THE WARD IS WAITING</div>
+    <h1>PAUSED</h1>
+    <p class="story">Take a breath. The corridor will still be here.</p>
+    <button id="resumeBtn" type="button">RESUME</button>
+  </div>
+</div>
+
+<div id="endingPanel">
+  <div class="panel">
+    <div class="kicker">CHAPTER I — END</div>
+    <h1 id="endingTitle">THE WAY HOME</h1>
+    <p class="story" id="endingText"></p>
+    <button id="restartBtn" type="button">RESTART CHAPTER</button>
+    <div class="hint">THE LAST WARD — The story continues.</div>
+  </div>
+</div>
+
+<div id="flash"></div>
+
+<div id="mobile">
+  <button id="mForward" type="button">▲</button>
+  <button id="mLeft" type="button">◀</button>
+  <button id="mBack" type="button">▼</button>
+  <button id="mRight" type="button">▶</button>
+  <button id="mUse" type="button">USE</button>
+  <button id="mLight" type="button">LIGHT</button>
+</div>
+
+<script type="module">
+import * as THREE from
+  'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const $ = id => document.getElementById(id);
+
+let scene, camera, renderer, clock, playerLight, ambient;
+let started = false;
+let paused = false;
+let ending = false;
+let mouseLocked = false;
+let flashlightOn = true;
+let yaw = 0;
+let pitch = 0;
+let messageTimer = 0;
+let phoneTimer = 0;
+let phoneRinging = false;
+let panic = 0;
+let patientTimer = 0;
+let patientState = 'stalk';
+let patient;
+let canUse = null;
+
+const keys = Object.create(null);
+const interactables = [];
+const colliders = [];
+const lights = [];
+const clues = new Set();
+
+const player = {x:0, z:10};
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+
+const WALK_SPEED = 3.1;
+const SPRINT_SPEED = 5.0;
+const PLAYER_RADIUS = 0.28;
+const CORRIDOR_MIN_Z = -56;
+const CORRIDOR_MAX_Z = 12;
+
+/* -------------------------------------------------------
+   PROCEDURAL MATERIALS
+------------------------------------------------------- */
+
+function canvasTexture(base, kind='wall') {
+  const c = document.createElement('canvas');
+  c.width = c.height = 512;
+
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = base;
+  ctx.fillRect(0,0,512,512);
+
+  if (kind === 'wall') {
+    for (let i=0; i<9000; i++) {
+      const n = Math.random()*40;
+      ctx.fillStyle = `rgba(${n+35},${n+38},${n+34},${Math.random()*.13})`;
+      ctx.fillRect(Math.random()*512,Math.random()*512,
+        1+Math.random()*4,1+Math.random()*5);
+    }
+
+    for(let y=0;y<512;y+=128) {
+      ctx.fillStyle='rgba(0,0,0,.16)';
+      ctx.fillRect(0,y,512,3);
+    }
+
+    for(let i=0;i<18;i++) {
+      ctx.fillStyle=`rgba(20,25,22,${Math.random()*.18})`;
+      ctx.fillRect(Math.random()*512,Math.random()*512,
+        10+Math.random()*60,2+Math.random()*15);
+    }
+  }
+
+  if (kind === 'floor') {
+    ctx.strokeStyle='rgba(0,0,0,.46)';
+    ctx.lineWidth=4;
+
+    for(let y=0;y<512;y+=64) {
+      ctx.beginPath();
+      ctx.moveTo(0,y);
+      ctx.lineTo(512,y);
+      ctx.stroke();
+    }
+
+    for(let x=0;x<512;x+=128) {
+      ctx.beginPath();
+      ctx.moveTo(x,0);
+      ctx.lineTo(x,512);
+      ctx.stroke();
+    }
+
+    for(let i=0;i<1600;i++) {
+      ctx.fillStyle=`rgba(0,0,0,${Math.random()*.13})`;
+      ctx.fillRect(Math.random()*512,Math.random()*512,2,2);
+    }
+  }
+
+  if (kind === 'metal') {
+    for(let i=0;i<1500;i++) {
+      ctx.fillStyle=`rgba(210,220,210,${Math.random()*.07})`;
+      ctx.fillRect(0,Math.random()*512,512,1);
+    }
+  }
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  return tex;
+}
+
+const wallTex = canvasTexture('#666a62','wall');
+const floorTex = canvasTexture('#343936','floor');
+const ceilingTex = canvasTexture('#454b46','wall');
+const metalTex = canvasTexture('#454b47','metal');
+
+wallTex.repeat.set(2,2);
+floorTex.repeat.set(4,10);
+ceilingTex.repeat.set(3,8);
+metalTex.repeat.set(1,2);
+
+function material(color, roughness=.85, metalness=0) {
+  return new THREE.MeshStandardMaterial({
+    color, roughness, metalness
+  });
+}
+
+const wallMat = new THREE.MeshStandardMaterial({
+  map:wallTex, roughness:.95
+});
+
+const floorMat = new THREE.MeshStandardMaterial({
+  map:floorTex, roughness:.91
+});
+
+const ceilingMat = new THREE.MeshStandardMaterial({
+  map:ceilingTex, roughness:1
+});
+
+const metalMat = new THREE.MeshStandardMaterial({
+  map:metalTex, roughness:.52, metalness:.4
+});
+
+function mesh(geometry, mat, x=0, y=0, z=0, parent=scene) {
+  const obj = new THREE.Mesh(geometry,mat);
+  obj.position.set(x,y,z);
+  obj.castShadow = false;
+  obj.receiveShadow = false;
+  parent.add(obj);
+  return obj;
+}
+
+function box(w,h,d,mat,x,y,z,parent=scene) {
+  return mesh(new THREE.BoxGeometry(w,h,d),mat,x,y,z,parent);
+}
+
+function cylinder(rt,rb,h,mat,x,y,z,parent=scene,segments=16) {
+  return mesh(new THREE.CylinderGeometry(rt,rb,h,segments),
+    mat,x,y,z,parent);
+}
+
+function addCollider(x,z,w,d) {
+  colliders.push({x,z,w,d});
+}
+
+function blocked(x,z) {
+  for (const c of colliders) {
+    if (
+      Math.abs(x-c.x) < c.w/2+PLAYER_RADIUS &&
+      Math.abs(z-c.z) < c.d/2+PLAYER_RADIUS
+    ) return true;
+  }
+  return false;
+}
+
+/* -------------------------------------------------------
+   LIGHTING AND ENVIRONMENT
+------------------------------------------------------- */
+
+function addLamp(x,z,color=0xd9d2b7,intensity=1.8) {
+  box(.75,.09,.26,metalMat,x,3.78,z);
+
+  const shade = new THREE.MeshStandardMaterial({
+    color:0xc3c4b6,
+    emissive:color,
+    emissiveIntensity:1.3,
+    roughness:.5
+  });
+
+  box(.61,.035,.18,shade,x,3.71,z);
+
+  const light = new THREE.PointLight(color,intensity,11,1.8);
+  light.position.set(x,3.45,z);
+  scene.add(light);
+
+  lights.push({
+    light,
+    base:intensity,
+    phase:Math.random()*10,
+    flicker:Math.random()
+  });
+}
+
+function addWallLight(x,y,z,rotation=0) {
+  const g = new THREE.Group();
+  g.position.set(x,y,z);
+  g.rotation.y = rotation;
+  scene.add(g);
+
+  box(.13,.32,.24,metalMat,0,0,0,g);
+
+  const glow = new THREE.MeshStandardMaterial({
+    color:0x8a9a91,
+    emissive:0x78958b,
+    emissiveIntensity:.7
+  });
+
+  box(.035,.2,.17,glow,.08,0,0,g);
+}
+
+function sign(x,y,z,label,rotation=0) {
+  const g = new THREE.Group();
+  g.position.set(x,y,z);
+  g.rotation.y=rotation;
+  scene.add(g);
+
+  box(1.35,.38,.06,material('#252b27'),0,0,0,g);
+
+  const c=document.createElement('canvas');
+  c.width=512;
+  c.height=128;
+
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#b8b9a9';
+  ctx.font='bold 42px Arial';
+  ctx.textAlign='center';
+  ctx.fillText(label,256,80);
+
+  const tex=new THREE.CanvasTexture(c);
+  tex.colorSpace=THREE.SRGBColorSpace;
+
+  mesh(new THREE.PlaneGeometry(1.25,.31),
+    new THREE.MeshBasicMaterial({map:tex,transparent:true}),
+    0,0,.036,g);
+}
+
+function addPipe(x,y,z,length,axis='z') {
+  const p=cylinder(.045,.045,length,metalMat,x,y,z,scene,10);
+
+  if(axis==='x') p.rotation.z=Math.PI/2;
+  if(axis==='z') p.rotation.x=Math.PI/2;
+
+  return p;
+}
+
+function addBloodStain(x,z,scale=1) {
+  const g=new THREE.CircleGeometry(.18*scale,16);
+  const m=new THREE.MeshBasicMaterial({
+    color:0x35201d,
+    transparent:true,
+    opacity:.58,
+    depthWrite:false
+  });
+
+  const stain=mesh(g,m,x,.045,z);
+  stain.rotation.x=-Math.PI/2;
+}
+
+function makeBed(x,z) {
+  const frame=material('#454d48',.6,.3);
+  const mattress=material('#b5b3a5');
+  const sheet=material('#8d968a');
+  const pillow=material('#d1ccbb');
+
+  box(1.75,.14,2.5,frame,x,.6,z);
+  box(1.68,.13,2.32,mattress,x,.73,z);
+  box(1.6,.035,1.25,sheet,x,.81,z+.4);
+  box(.8,.09,.43,pillow,x,.84,z-.72);
+
+  for(const dx of [-.74,.74]) {
+    for(const dz of [-1.05,1.05]) {
+      cylinder(.045,.045,.58,frame,x+dx,.3,z+dz,scene,8);
+    }
+  }
+
+  box(1.85,.07,.08,frame,x,.93,z-1.22);
+}
+
+function makeCabinet(x,z) {
+  const g=new THREE.Group();
+  g.position.set(x,0,z);
+  scene.add(g);
+
+  box(.9,1.6,.62,material('#4a514a'),0,.85,0,g);
+
+  for(let i=0;i<3;i++) {
+    const y=.35+i*.47;
+    box(.82,.025,.64,metalMat,0,y,0,g);
+    box(.76,.38,.025,material('#353d37'),0,y+.2,.32,g);
+    box(.11,.035,.035,metalMat,0,y+.2,.35,g);
+  }
+}
+
+function makeDesk(x,z) {
+  box(2.3,.12,.85,material('#4a4b40'),x,1.08,z);
+  box(2.15,.55,.68,material('#343b36'),x,1.38,z);
+  box(1.7,.07,.48,material('#181d1a'),x,1.68,z-.05);
+
+  const screen=box(.8,.56,.08,material('#101613'),x,2.02,z-.25);
+  screen.rotation.x=-.08;
+
+  box(.68,.4,.025,
+    new THREE.MeshBasicMaterial({color:0x19231f}),
+    x,2.02,z-.19);
+}
+
+function makeSideRoom(side,z,label) {
+  const x=side*6.2;
+
+  box(4.3,.06,5.8,floorMat,x,.02,z);
+  box(4.3,.12,5.8,ceilingMat,x,3.98,z);
+
+  box(.12,4,5.8,wallMat,x+side*2.15,2,z);
+  box(4.3,4,.12,wallMat,x,2,z-2.9);
+  box(4.3,4,.12,wallMat,x,2,z+2.9);
+
+  addLamp(x,z,0xc7d1c9,.65);
+
+  if(label==='NURSE STATION') {
+    makeDesk(x,z-1.25);
+    makeCabinet(x+1.4,z+.6);
+    box(.65,.12,.7,material('#424940'),x-1.3,.65,z+.7);
+  } else if(label==='PATIENT ROOM 03') {
+    makeBed(x,z-.35);
+    makeCabinet(x+1.45,z+1);
+    box(.3,.65,.3,material('#393f3a'),x-1.45,.36,z+.8);
+  } else if(label==='RECORDS') {
+    for(let i=0;i<4;i++) {
+      box(2.5,.09,.36,metalMat,x,1+i*.62,z-1.65);
+      for(let j=0;j<6;j++) {
+        const h=.18+Math.random()*.2;
+        box(.12,h,.24,material(
+          ['#777365','#9b9480','#5b655d','#827e70'][j%4]
+        ),x-1.05+j*.42,1.1+i*.62+h/2,z-1.5);
+      }
+    }
+  } else {
+    makeBed(x,z-.5);
+    makeCabinet(x-1.45,z+1);
+  }
+}
+
+/* -------------------------------------------------------
+   DOORS AND INTERACTABLES
+------------------------------------------------------- */
+
+function addDoor(x,z,label,locked=false) {
+  const inward=x<0?1:-1;
+
+  const frame=new THREE.Group();
+  frame.position.set(x,0,z);
+  scene.add(frame);
+
+  box(1.72,2.9,.15,material('#292f2b'),0,1.45,0,frame);
+
+  const pivot=new THREE.Group();
+  pivot.position.set(0,0,.02);
+  frame.add(pivot);
+
+  const leaf=new THREE.Group();
+  pivot.add(leaf);
+
+  box(1.5,2.65,.13,material('#465048'),
+    inward*.75,1.38,0,leaf);
+
+  for(const [y,h] of [[.65,.48],[1.45,.55],[2.15,.34]]) {
+    box(1.15,h,.025,material('#303832'),
+      inward*.75,y,.075,leaf);
+  }
+
+  box(.18,.32,.045,metalMat,inward*1.3,1.5,.1,leaf);
+  cylinder(.06,.06,.08,metalMat,inward*1.3,1.18,.14,leaf);
+
+  const item={
+    kind:'door',
+    name:label,
+    x:x+inward*.75,
+    z,
+    locked,
+    open:false,
+    use() {
+      if(this.locked) {
+        showMessage('LOCKED. Find the records and look for another way.');
+        return;
+      }
+
+      this.open=!this.open;
+      pivot.rotation.y=this.open?-inward*1.15:0;
+
+      showMessage(this.open
+        ? 'The hinge groans in the dark.'
+        : 'The door closes with a heavy click.');
+    }
+  };
+
+  interactables.push(item);
+}
+
+/* -------------------------------------------------------
+   CLUES, PHONE, PATIENT
+------------------------------------------------------- */
+
+function buildClues() {
+  const defs=[
+    {
+      id:'record',x:-3.7,z:-8.2,
+      title:'PATIENT FILE — M. VALE',
+      text:'PATIENT: MIKE VALE.\n\nIdentity confirmed; personal history inaccessible. Subject repeatedly asks for a woman named “Jess…” before becoming distressed. Do not let him near the east exit. The attending physician has requested that this record be removed from the public archive.'
+    },
+    {
+      id:'photo',x:3.7,z:-19.2,
+      title:'TORN PHOTOGRAPH',
+      text:'A photograph, creased and water-damaged. A man stands beside a woman whose face has been scratched away.\n\nOn the back, in faded ink:\n“When you find your way home, I will still be there. — J.”\n\nA strange warmth rises in Mike’s chest, but the memory will not come.'
+    },
+    {
+      id:'tape',x:-3.7,z:-32.2,
+      title:'RECOVERED AUDIO TRANSCRIPT',
+      text:'[RECORDING — 02:13 AM]\n\nVOICE: “You can keep asking what happened to you, Mike. The question is what you did before you came here.”\n\n[THREE KNOCKS]\n\nVOICE: “Do not trust the patient in the hall. He wears your old number.”\n\n[TAPE ENDS]'
+    },
+    {
+      id:'ledger',x:3.7,z:-44.2,
+      title:'NIGHT SHIFT LEDGER',
+      text:'NIGHT SHIFT — FINAL ENTRY.\n\nThe ward was evacuated, but no transfer forms were filed. Staff report a telephone ringing in rooms with no lines. One patient is still walking the corridors.\n\nIf the man called Mike reaches the outside doors, do not stop him. Let him remember on his own.'
+    }
+  ];
+
+  for(const d of defs) {
+    const g=new THREE.Group();
+    g.position.set(d.x,0,d.z);
+    scene.add(g);
+
+    box(.48,.045,.62,material('#a9a48f'),0,.15,0,g);
+
+    for(let i=0;i<5;i++) {
+      box(.34,.006,.012,material('#41453f'),
+        0,.177,-.2+i*.09,g);
+    }
+
+    interactables.push({
+      kind:'clue',
+      id:d.id,
+      name:d.title,
+      x:d.x,
+      z:d.z,
+      use() {
+        if(clues.has(d.id)) {
+          showNote(d.title,'You have already read this record.');
+          return;
+        }
+
+        clues.add(d.id);
+        $('clueCount').textContent=`${clues.size} / 4`;
+        showNote(d.title,d.text);
+        updateObjective();
+
+        if(clues.size===1) wakePatient();
+      }
+    });
+  }
+}
+
+function buildPhone() {
+  const x=-3.7,z=-8.7;
+
+  box(.4,.42,.2,material('#191e1c'),x,1.55,z);
+  box(.32,.06,.15,metalMat,x,1.79,z-.05);
+
+  const handset=box(.42,.08,.1,material('#252a27'),x,1.93,z);
+
+  interactables.push({
+    kind:'phone',
+    name:'RINGING TELEPHONE',
+    x:x+.35,z,
+    use() {
+      if(!phoneRinging) {
+        showMessage('The receiver is cold. The line is dead.');
+        return;
+      }
+
+      phoneRinging=false;
+
+      showNote('THE CALLER',
+        '“Mike. If you can hear me, you have found the records. The Patient has found you, too. The east door is not the way out. It is only the first door. Leave before the lights go out.”\n\n[The line clicks dead.]');
+    }
+  });
+}
+
+function buildPatient() {
+  patient=new THREE.Group();
+  patient.position.set(0,0,-25);
+  scene.add(patient);
+
+  const skin=material('#81796d');
+  const gown=material('#59665e');
+  const dark=material('#343d38');
+  const hair=material('#222522');
+
+  // Smooth torso
+  const torso=mesh(
+    new THREE.CapsuleGeometry(.34,.7,7,12),
+    gown,0,1.38,0,patient
+  );
+  torso.scale.set(1.15,1,.75);
+
+  // Neck and head
+  cylinder(.12,.13,.23,skin,0,1.95,0,patient,12);
+  mesh(new THREE.SphereGeometry(.255,20,16),
+    skin,0,2.2,0,patient);
+
+  mesh(new THREE.SphereGeometry(.26,20,14,0,Math.PI*2,0,Math.PI*.58),
+    hair,0,2.29,-.025,patient);
+
+  // Deep-set eyes
+  for(const s of [-1,1]) {
+    mesh(new THREE.SphereGeometry(.035,10,8),
+      material('#181b18'),s*.095,2.22,-.226,patient);
+
+    const arm=mesh(
+      new THREE.CapsuleGeometry(.095,.66,5,10),
+      gown,s*.4,1.35,0,patient
+    );
+    arm.rotation.z=-s*.12;
+
+    const leg=mesh(
+      new THREE.CapsuleGeometry(.12,.62,5,10),
+      dark,s*.17,.43,0,patient
+    );
+    leg.rotation.z=-s*.04;
+  }
+
+  patient.visible=false;
+}
+
+function wakePatient() {
+  patient.visible=true;
+  patient.position.set(0,0,-25);
+  patientState='stalk';
+  patientTimer=0;
+  phoneRinging=true;
+
+  showMessage('Somewhere ahead, bare feet scrape across the floor.',4);
+}
+
+/* -------------------------------------------------------
+   BUILD THE WORLD
+------------------------------------------------------- */
+
+function buildRoom() {
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color('#080b0b');
+  scene.fog=new THREE.FogExp2('#090d0d',.023);
+
+  camera=new THREE.PerspectiveCamera(
+    76,innerWidth/innerHeight,.08,120
+  );
+  camera.rotation.order='YXZ';
+
+  renderer=new THREE.WebGLRenderer({
+    antialias:true,
+    powerPreference:'high-performance',
+    alpha:false
+  });
+
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.outputColorSpace=THREE.SRGBColorSpace;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1.18;
+
+  document.body.insertBefore(renderer.domElement,$('vignette'));
+
+  clock=new THREE.Clock();
+
+  ambient=new THREE.HemisphereLight(0x9aa69e,0x161917,.52);
+  scene.add(ambient);
+
+  const base=new THREE.DirectionalLight(0x9da8a1,.28);
+  base.position.set(-3,8,4);
+  scene.add(base);
+
+  // Main corridor
+  const floor=mesh(
+    new THREE.PlaneGeometry(10,75),
+    floorMat,0,.015,-20
+  );
+  floor.rotation.x=-Math.PI/2;
+
+  const ceiling=mesh(
+    new THREE.PlaneGeometry(10,75),
+    ceilingMat,0,4,-20
+  );
+  ceiling.rotation.x=Math.PI/2;
+
+  box(.3,4,75,wallMat,-5,2,-20);
+  box(.3,4,75,wallMat,5,2,-20);
+
+  // Wall protection rails
+  box(.08,.22,75,metalMat,-4.8,.7,-20);
+  box(.08,.22,75,metalMat,4.8,.7,-20);
+
+  // Exposed ceiling pipes
+  addPipe(-3.7,3.72,-20,72);
+  addPipe(-3.35,3.68,-20,72);
+  addPipe(3.7,3.72,-20,72);
+
+  // Ceiling crossbars
+  for(let z=10;z>-55;z-=4) {
+    box(9.7,.045,.08,metalMat,0,3.88,z);
+  }
+
+  // Lighting
+  for(let z=9;z>-54;z-=7) {
+    addLamp(0,z,0xded8c5,z<-25?1.25:1.75);
+  }
+
+  // Room dressing
+  makeSideRoom(-1,-8,'NURSE STATION');
+  makeSideRoom(1,-19,'PATIENT ROOM 03');
+  makeSideRoom(-1,-32,'RECORDS');
+  makeSideRoom(1,-44,'TREATMENT');
+
+  addDoor(-4.15,-8,'STAFF ONLY',true);
+  addDoor(4.15,-19,'ROOM 03',false);
+  addDoor(-4.15,-32,'RECORDS',false);
+  addDoor(4.15,-44,'TREATMENT',false);
+
+  sign(-4.78,2.85,-3,'WARD C',-Math.PI/2);
+  sign(4.78,2.85,-25,'EXIT',Math.PI/2);
+
+  // A second bed and atmospheric details
+  makeBed(2.4,-27);
+  addBloodStain(-1.5,-22,.8);
+  addBloodStain(1.1,-37,.65);
+
+  for(let z=-5;z>-50;z-=11) {
+    addWallLight(-4.72,2.7,z,-Math.PI/2);
+    addWallLight(4.72,2.7,z,Math.PI/2);
+  }
+
+  buildPatient();
+  buildClues();
+  buildPhone();
+
+  // End of corridor
+  box(4.2,3.8,.2,material('#252b27'),0,1.9,-57);
+  box(2.4,3.1,.16,material('#333c36'),0,1.55,-56.85);
+  sign(0,3.1,-56.72,'EXIT');
+
+  interactables.push({
+    kind:'exit',
+    name:'EXIT DOOR',
+    x:0,z:-55.3,
+    use() {
+      if(clues.size<4) {
+        showMessage('The exit mechanism is dead. Find all four records.');
+        return;
+      }
+      triggerEnding();
+    }
+  });
+
+  // Flashlight attached to the camera
+  playerLight=new THREE.SpotLight(
+    0xe4e7dc,70,27,Math.PI/6,.48,1.25
+  );
+  playerLight.position.set(0,-.08,0);
+  playerLight.target.position.set(0,0,-1);
+
+  camera.add(playerLight);
+  camera.add(playerLight.target);
+  scene.add(camera);
+
+  camera.position.set(player.x,1.7,player.z);
+}
+
+/* -------------------------------------------------------
+   UI
+------------------------------------------------------- */
+
+function showMessage(text,seconds=3) {
+  $('message').textContent=text;
+  $('message').classList.add('show');
+  messageTimer=seconds;
+}
+
+function showNote(title,text) {
+  $('noteTitle').textContent=title;
+  $('noteText').textContent=text;
+  $('notePanel').style.display='flex';
+  paused=true;
+
+  if(document.pointerLockElement) {
+    document.exitPointerLock();
+  }
+}
+
+function updateObjective() {
+  $('objectiveText').textContent =
+    clues.size===4
+      ? 'Reach the exit at the end of the corridor.'
+      : clues.size===0
+        ? 'Search the ward. Find the patient records.'
+        : `Recover the remaining records (${clues.size}/4).`;
+}
+
+function triggerEnding() {
+  ending=true;
+  paused=true;
+
+  $('endingText').textContent =
+    'The door gives way. Cold night air fills Mike’s lungs. '+
+    'A woman runs toward him, calling his name. For one quiet '+
+    'moment, the world is still. Then the lights of the hospital '+
+    'flicker behind them, and the memory of the ward follows Mike '+
+    'into the night.';
+
+  $('endingPanel').style.display='flex';
+
+  if(document.pointerLockElement) {
+    document.exitPointerLock();
+  }
+}
+
+/* -------------------------------------------------------
+   CAMERA AND MOVEMENT FIXES
+------------------------------------------------------- */
+
+function requestLock() {
+  const el=renderer?.domElement;
+  if(!el || !el.requestPointerLock) return;
+
+  try {
+    const result=el.requestPointerLock();
+    if(result && typeof result.catch==='function') {
+      result.catch(()=> {
+        showMessage('Mouse lock unavailable. Click and drag to look.',3);
+      });
+    }
+  } catch(err) {
+    console.warn('Pointer lock unavailable:',err);
+  }
+}
+
+function startGame() {
+  if(started) return;
+
+  $('overlay').style.display='none';
+  started=true;
+  paused=false;
+  ending=false;
+
+  clock.getDelta();
+
+  requestLock();
+
+  showMessage('Mike. That is the only thing you remember.',4);
+}
+
+function interact() {
+  if(!started || paused || ending) return;
+
+  const dir=new THREE.Vector3(0,0,-1)
+    .applyQuaternion(camera.quaternion);
+
+  let best=null;
+  let bestDist=3.0;
+
+  for(const it of interactables) {
+    const p=new THREE.Vector3(it.x,1.25,it.z);
+    const delta=p.sub(camera.position);
+    const dist=delta.length();
+
+    if(dist>bestDist) continue;
+
+    delta.normalize();
+
+    if(delta.dot(dir)>.68) {
+      best=it;
+      bestDist=dist;
+    }
+  }
+
+  if(best) best.use();
+  else showMessage('Nothing within reach.');
+}
+
+function updatePrompt() {
+  canUse=null;
+
+  const dir=new THREE.Vector3(0,0,-1)
+    .applyQuaternion(camera.quaternion);
+
+  let best=2.8;
+
+  for(const it of interactables) {
+    const p=new THREE.Vector3(it.x,1.25,it.z);
+    const delta=p.sub(camera.position);
+    const dist=delta.length();
+
+    if(dist<best && delta.normalize().dot(dir)>.68) {
+      best=dist;
+      canUse=it;
+    }
+  }
+
+  $('prompt').textContent=canUse
+    ? '[ E ]  '+(canUse.name||canUse.label||'INTERACT')
+    : '';
+}
+
+function movePlayer(dt) {
+  // Explicitly use boolean checks to avoid missing key states.
+  const forward =
+    (keys.KeyW||keys.ArrowUp?1:0) -
+    (keys.KeyS||keys.ArrowDown?1:0);
+
+  const side =
+    (keys.KeyD||keys.ArrowRight?1:0) -
+    (keys.KeyA||keys.ArrowLeft?1:0);
+
+  const sprint=!!(keys.ShiftLeft||keys.ShiftRight);
+  const speed=sprint?SPRINT_SPEED:WALK_SPEED;
+
+  // Camera direction and strafe direction
+  const fx=-Math.sin(yaw);
+  const fz=-Math.cos(yaw);
+  const rx=Math.cos(yaw);
+  const rz=-Math.sin(yaw);
+
+  let mx=(fx*forward+rx*side);
+  let mz=(fz*forward+rz*side);
+
+  const length=Math.hypot(mx,mz);
+
+  if(length>0) {
+    mx=mx/length*speed*dt;
+    mz=mz/length*speed*dt;
+  }
+
+  // Keep movement responsive even when sliding along a wall.
+  const nx=clamp(player.x+mx,-4.48,4.48);
+  const nz=clamp(player.z+mz,CORRIDOR_MIN_Z,CORRIDOR_MAX_Z);
+
+  if(!blocked(nx,player.z)) player.x=nx;
+  if(!blocked(player.x,nz)) player.z=nz;
+
+  // Camera bob while walking
+  const moving=length>0;
+  const t=performance.now()*.009;
+  const bob=moving?Math.sin(t*(sprint?1.8:1.2))*.025:0;
+
+  camera.position.set(player.x,1.7+bob,player.z);
+  camera.rotation.order='YXZ';
+  camera.rotation.set(pitch,yaw,0,'YXZ');
+
+  if(sprint && moving) {
+    panic=Math.min(1,panic+dt*.18);
+  } else {
+    panic=Math.max(0,panic-dt*.12);
+  }
+}
+
+function updatePatient(dt) {
+  if(!patient.visible || ending) return;
+
+  patientTimer+=dt;
+
+  const dx=player.x-patient.position.x;
+  const dz=player.z-patient.position.z;
+  const dist=Math.hypot(dx,dz);
+
+  if(dist<10) patientState='hunt';
+
+  if(patientState==='stalk') {
+    if(dist>10) {
+      patient.position.z+=Math.sin(patientTimer*.5)*dt*.12;
+    } else {
+      patient.position.x+=Math.sign(dx)*dt*.2;
+      patient.position.z+=Math.sign(dz)*dt*.2;
+    }
+  } else {
+    if(dist>1.5) {
+      patient.position.x+=dx/(dist||1)*(1.1+panic*.5)*dt;
+      patient.position.z+=dz/(dist||1)*(1.1+panic*.5)*dt;
+    }
+
+    patient.lookAt(player.x,1.4,player.z);
+
+    if(dist<1.5) {
+      patient.position.set(0,0,-25);
+      patientState='stalk';
+      player.z=clamp(player.z+2,-54,10);
+
+      $('flash').style.opacity='.55';
+
+      setTimeout(()=> {
+        $('flash').style.opacity='0';
+      },100);
+
+      showMessage('You stumble away from the Patient.',2.5);
+    }
+
+    if(dist>18) patientState='stalk';
+  }
+
+  patient.rotation.y +=
+    (Math.atan2(dx,dz)-patient.rotation.y)*Math.min(1,dt*2);
+}
+
+function updateWorld(dt,t) {
+  for(const l of lights) {
+    let intensity=l.base;
+
+    if(Math.random()<.003) intensity*=.18;
+
+    l.light.intensity=intensity*
+      (.94+Math.sin(t*2+l.phase)*.06);
+  }
+
+  if(phoneRinging) {
+    phoneTimer+=dt;
+
+    if(phoneTimer>8) {
+      phoneTimer=0;
+      showMessage('A telephone rings somewhere behind the walls.',2);
+    }
+  }
+
+  if(messageTimer>0) {
+    messageTimer-=dt;
+
+    if(messageTimer<=0) {
+      $('message').classList.remove('show');
+    }
+  }
+
+  $('lightState').textContent=flashlightOn?'ON':'OFF';
+}
+
+/* -------------------------------------------------------
+   GAME LOOP
+------------------------------------------------------- */
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  if(!renderer || !scene || !camera) return;
+
+  const dt=Math.min(clock.getDelta()||.016,.04);
+  const t=performance.now()*.001;
+
+  if(started && !paused && !ending) {
+    movePlayer(dt);
+    updatePatient(dt);
+    updatePrompt();
+    updateWorld(dt,t);
+  }
+
+  renderer.render(scene,camera);
+}
+
+function toggleLight() {
+  flashlightOn=!flashlightOn;
+
+  if(playerLight) playerLight.visible=flashlightOn;
+
+  $('lightState').textContent=flashlightOn?'ON':'OFF';
+}
+
+function resume() {
+  paused=false;
+  $('pausePanel').style.display='none';
+  requestLock();
+}
+
+function resetGame() {
+  location.reload();
+}
+
+/* -------------------------------------------------------
+   INPUT FIXES: KEYBOARD, MOUSE, POINTER LOCK, TOUCH
+------------------------------------------------------- */
+
+$('startBtn').addEventListener('click',startGame);
+
+$('closeNote').addEventListener('click',()=> {
+  $('notePanel').style.display='none';
+  paused=false;
+  requestLock();
+});
+
+$('resumeBtn').addEventListener('click',resume);
+$('restartBtn').addEventListener('click',resetGame);
+
+$('notePanel').addEventListener('click',e=> {
+  if(e.target===$('notePanel')) {
+    $('notePanel').style.display='none';
+    paused=false;
+    requestLock();
+  }
+});
+
+document.addEventListener('pointerlockchange',()=> {
+  mouseLocked=document.pointerLockElement===renderer?.domElement;
+
+  if(started && !paused && !ending && !mouseLocked) {
+    $('lookHelp').textContent='CLICK AND DRAG TO LOOK';
+  } else if(mouseLocked) {
+    $('lookHelp').textContent='MOUSE LOOK ACTIVE';
+  }
+});
+
+document.addEventListener('pointerlockerror',()=> {
+  mouseLocked=false;
+  showMessage('Mouse lock unavailable. Click and drag to look.',3);
+});
+
+// Pointer-lock mouse look: both axes are handled.
+document.addEventListener('mousemove',e=> {
+  if(!started || paused || ending || !mouseLocked) return;
+
+  yaw-=e.movementX*.0022;
+  pitch-=e.movementY*.0022;
+  pitch=clamp(pitch,-1.35,1.35);
+});
+
+// Drag-to-look fallback if pointer lock does not work.
+let dragging=false;
+let lastX=0;
+let lastY=0;
+let dragPointerId=null;
+
+rendererPointerSetup();
+
+function rendererPointerSetup() {
+  // The renderer is initialized below. This function is intentionally
+  // called again after the renderer is created.
+}
+
+function setupLookControls() {
+  const el=renderer.domElement;
+
+  el.addEventListener('pointerdown',e=> {
+    if(!started || paused || ending || mouseLocked) return;
+
+    dragging=true;
+    dragPointerId=e.pointerId;
+    lastX=e.clientX;
+    lastY=e.clientY;
+
+    try { el.setPointerCapture(e.pointerId); } catch(_) {}
+  });
+
+  el.addEventListener('pointermove',e=> {
+    if(!dragging || mouseLocked || e.pointerId!==dragPointerId) return;
+    if(!started || paused || ending) return;
+
+    const dx=e.clientX-lastX;
+    const dy=e.clientY-lastY;
+
+    lastX=e.clientX;
+    lastY=e.clientY;
+
+    yaw-=dx*.006;
+    pitch-=dy*.006;
+    pitch=clamp(pitch,-1.35,1.35);
+  });
+
+  function stopDrag() {
+    dragging=false;
+    dragPointerId=null;
+  }
+
+  el.addEventListener('pointerup',stopDrag);
+  el.addEventListener('pointercancel',stopDrag);
+  el.addEventListener('lostpointercapture',stopDrag);
+}
+
+document.addEventListener('keydown',e=> {
+  const code=e.code;
+
+  if([
+    'Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'
+  ].includes(code)) {
+    e.preventDefault();
+  }
+
+  if(code==='Escape' && started && !ending) {
+    if($('notePanel').style.display==='flex') return;
+
+    if(paused) {
+      resume();
+    } else {
+      paused=true;
+      $('pausePanel').style.display='flex';
+
+      if(document.pointerLockElement) {
+        document.exitPointerLock();
+      }
+    }
+
+    return;
+  }
+
+  keys[code]=true;
+
+  if(e.repeat) return;
+
+  if(code==='KeyE') interact();
+  if(code==='KeyF') toggleLight();
+});
+
+document.addEventListener('keyup',e=> {
+  keys[e.code]=false;
+});
+
+window.addEventListener('blur',()=> {
+  for(const key in keys) keys[key]=false;
+});
+
+// Mobile movement buttons: hold to move, release to stop.
+function holdButton(id,key) {
+  const el=$(id);
+
+  function down(e) {
+    e.preventDefault();
+    keys[key]=true;
+    el.classList.add('active');
+
+    try { el.setPointerCapture(e.pointerId); } catch(_) {}
+  }
+
+  function up() {
+    keys[key]=false;
+    el.classList.remove('active');
+  }
+
+  el.addEventListener('pointerdown',down);
+  el.addEventListener('pointerup',up);
+  el.addEventListener('pointercancel',up);
+  el.addEventListener('lostpointercapture',up);
+}
+
+holdButton('mForward','KeyW');
+holdButton('mBack','KeyS');
+holdButton('mLeft','KeyA');
+holdButton('mRight','KeyD');
+
+$('mUse').addEventListener('click',interact);
+$('mLight').addEventListener('click',toggleLight);
+
+window.addEventListener('resize',()=> {
+  if(!camera || !renderer) return;
+
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+/* -------------------------------------------------------
+   SAFE INITIALIZATION
+------------------------------------------------------- */
+
+try {
+  buildRoom();
+  setupLookControls();
+
+  camera.position.set(player.x,1.7,player.z);
+
+  animate();
+} catch(err) {
+  console.error('THE LAST WARD failed to initialize:',err);
+
+  $('overlay').style.display='flex';
+
+  document.querySelector('.story').textContent=
+    'The 3D scene could not start. Check your internet connection, '+
+    'then reload the page. If the problem continues, open Chrome '+
+    'Developer Tools with F12 and check the Console for errors.';
+}
+</script>
+</body>
+</html>
